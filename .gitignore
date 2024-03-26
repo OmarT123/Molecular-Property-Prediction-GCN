@@ -1,0 +1,8 @@
+tmp.py
+getting_database.py
+save
+results
+*.npy
+*.ckpt
+*.index
+*.meta
