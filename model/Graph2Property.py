@@ -7,19 +7,21 @@ class Graph2Property():
     def __init__(self, FLAGS):
         self.FLAGS = FLAGS
         self.batch_size = FLAGS.batch_size
-        self.A = tf.placeholder("float64", shape = [self.batch_size, 50, 50])
-        self.X = tf.placeholder("float64", shape = [self.batch_size, 50, 58])
-        self.P = tf.placeholder("float64", shape = [self.batch_size])
+        self.A = tf.placeholder(tf.float64, shape = [self.batch_size, 50, 50]) #Adjacency matrix
+        self.X = tf.placeholder(tf.float64, shape = [self.batch_size, 50, 58]) #Node features
+        self.P = tf.placeholder(tf.float64, shape = [self.batch_size]) #Target property or label
 
         self.create_network()
 
     def create_network(self):
-        self.A = tf.cast(self.A, tf.float64)
-        self.X = tf.cast(self.X, tf.float64)
-        self.P = tf.cast(self.P, tf.float64)
-        self.Z = None
-        self._X = None
-        self._P = None
+        
+        # self.A = tf.cast(self.A, tf.float64)
+        # self.X = tf.cast(self.X, tf.float64)
+        # self.P = tf.cast(self.P, tf.float64)
+
+        self.Z = None #Latent Vector
+        self._X = None #Node Embeddings
+        self._P = None #Prediction of the model
         latent_dim = self.FLAGS.latent_dim
         num_layers = self.FLAGS.num_layers
 
@@ -43,25 +45,26 @@ class Graph2Property():
 
         self.lr = tf.Variable(0.0, trainable = False)
         self.opt = self.optimizer( self.lr, self.FLAGS.optimizer )
-        self.sess = tf.Session()
-        init = tf.global_variables_initializer()
-        self.sess = tf.Session()
+        self.sess = tf.Session() # Create a new TensorFlow session
+        init = tf.global_variables_initializer() # Initialize the model's global variables
+        # self.sess = tf.Session()
         self.sess.run(init)
-        self.saver = tf.train.Saver()
+        self.saver = tf.train.Saver() # for saving and restoring all variables
         tf.train.start_queue_runners(sess=self.sess)
         print ("Network Ready")
 
     def calLoss(self, P, _P):
-        batch_size = int(P.get_shape()[0])
+        batch_size = int(P.get_shape()[0]) #Gets number of samples in current batch of data
         P = tf.reshape(P, [batch_size, -1])
-        P = tf.cast(P, tf.float64)
         _P = tf.reshape(_P, [batch_size, -1])
+        #ensure that both P and _P have the same data type for accurate computation of the loss
+        P = tf.cast(P, tf.float64) 
         _P = tf.cast(_P, tf.float64)
-        loss = tf.reduce_mean(tf.pow((P-_P),2))
+        loss = tf.reduce_mean(tf.pow((P-_P),2)) #Compute mean of the squared errors across all samples in the batch
 
         return loss
 
-    def optimizer(self, lr, opt_type):
+    def optimizer(self, lr, opt_type): #Get Optimizer from tf.train (Options: Adam, RMSProp, SGD)
         optimizer = None
         if( opt_type == 'Adam' ):
             optimizer = tf.train.AdamOptimizer(lr)

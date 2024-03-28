@@ -7,8 +7,9 @@ from rdkit.Chem.rdMolDescriptors import CalcTPSA
 from rdkit.Contrib.SA_Score.sascorer import calculateScore
 import sys
 
+database = sys.argv[1]  # database file name
 
-smiles_f = open('./ZINC/smiles.txt')
+smiles_f = open(f'./{database}/smiles.txt')
 smiles_list = smiles_f.readlines()
 
 logPList = []
@@ -17,6 +18,7 @@ TPSAList = []
 QEDList = []
 SASList = []
 for smi in smiles_list:
+    print(smi)
     smi = smi.strip()
     m = Chem.MolFromSmiles(smi)
     molWt = ExactMolWt(m)
@@ -36,7 +38,7 @@ TPSAList = np.asarray(TPSAList)
 QEDList = np.asarray(QEDList)
 SASList = np.asarray(SASList)
 
-np.save('./ZINC/logP.npy', logPList)
-np.save('./ZINC/TPSA.npy', TPSAList)
-np.save('./ZINC/QED.npy', QEDList)
-np.save('./ZINC/SAS.npy', SASList)
+np.save(f'./{database}/logP.npy', logPList)
+np.save(f'./{database}/TPSA.npy', TPSAList)
+np.save(f'./{database}/QED.npy', QEDList)
+np.save(f'./{database}/SAS.npy', SASList)

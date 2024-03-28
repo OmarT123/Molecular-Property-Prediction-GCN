@@ -1,5 +1,6 @@
 import numpy as np
 import os
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 import time
 import sys
 sys.path.insert(0, './model')
@@ -81,8 +82,8 @@ decay_rate = float(sys.argv[6]) # 0.95
 
 database = ''
 if (prop in ['TPSA2', 'logP', 'SAS']):
-    database = 'ZINC'
-    numDB = 45
+    database = 'QM9'
+    numDB = 13
     unit_len = 10000
 elif (prop == 'pve'):
     database = 'CEP'
@@ -123,4 +124,3 @@ print ("Using", FLAGS.loss_type, "for loss function in an optimization")
 
 model = Graph2Property(FLAGS)
 training(model, FLAGS, modelName)
-#save model

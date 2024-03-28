@@ -2,7 +2,7 @@ import numpy as np
 import sys
 from rdkit import Chem
 
-def adj_k(adj, k):
+def adj_k(adj, k): # Compute k-th power of adj matrix
 
     ret = adj
     for i in range(0, k-1):
@@ -10,7 +10,7 @@ def adj_k(adj, k):
 
     return convertAdj(ret)
 
-def convertAdj(adj):
+def convertAdj(adj): # Convert adj matrix into a binary matrix
 
     dim = len(adj)
     a = adj.flatten()
@@ -20,7 +20,7 @@ def convertAdj(adj):
 
     return d
 
-def convertToGraph(smiles_list, k):
+def convertToGraph(smiles_list, k): # Convert a list of smiles text to graph representation
     adj = []
     adj_norm = []
     features = []
@@ -48,7 +48,7 @@ def convertToGraph(smiles_list, k):
 
     return adj, features
     
-def atom_feature(atom):
+def atom_feature(atom): # Computes features of each atom
     return np.array(one_of_k_encoding_unk(atom.GetSymbol(),
                                       ['C', 'N', 'O', 'S', 'F', 'H', 'Si', 'P', 'Cl', 'Br',
                                        'Li', 'Na', 'K', 'Mg', 'Ca', 'Fe', 'As', 'Al', 'I', 'B',
@@ -59,13 +59,13 @@ def atom_feature(atom):
                     one_of_k_encoding_unk(atom.GetImplicitValence(), [0, 1, 2, 3, 4, 5]) +
                     [atom.GetIsAromatic()])    # (40, 6, 5, 6, 1)
 
-def one_of_k_encoding(x, allowable_set):
+def one_of_k_encoding(x, allowable_set): # One hot encoding function
     if x not in allowable_set:
         raise Exception("input {0} not in allowable set{1}:".format(x, allowable_set))
     #print list((map(lambda s: x == s, allowable_set)))
     return list(map(lambda s: x == s, allowable_set))
 
-def one_of_k_encoding_unk(x, allowable_set):
+def one_of_k_encoding_unk(x, allowable_set): # One hot encoding function
     """Maps inputs not in the allowable set to the last element."""
     if x not in allowable_set:
         x = allowable_set[-1]
@@ -73,10 +73,10 @@ def one_of_k_encoding_unk(x, allowable_set):
 
 # execution : 
 # Re-use several scripts in https://github.com/HIPS/neural-fingerprint
-# python smilesToGraph.py CEP 1000 1    --- to generate graph inputs for ZINC dataset 
+# python smilesToGraph.py CEP 1000 1    --- to generate graph inputs for CEP dataset 
 # python smilesToGraph.py ZINC 10000 1  --- to generate graph inputs for ZINC dataset
 
-dbName = sys.argv[1]        # CEP, ZINC
+dbName = sys.argv[1]        # CEP, ZINC, QM9
 length = int(sys.argv[2])   # num molecules in graph input files
 k = int(sys.argv[3])        # neighbor distance
 
