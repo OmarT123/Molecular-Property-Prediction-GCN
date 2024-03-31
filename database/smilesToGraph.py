@@ -88,7 +88,7 @@ maxNum = int(len(smiles_list)/length)
 for i in range(maxNum+1):
     lb = i*length
     ub = (i+1)*length
-    adj, features = convertToGraph(smiles_list[lb:ub], 1)
+    adj, features = convertToGraph(smiles_list[lb:ub], k)
     print (np.asarray(features).shape)
     np.save('./'+dbName+'/adj/'+str(i)+'.npy', adj)
     np.save('./'+dbName+'/features/'+str(i)+'.npy', features)

@@ -33,8 +33,12 @@ def get_gate_coeff(X1, X2, dim, label):
     _b = tf.compat.v1.get_variable('mem_coef-'+str(label), initializer=tf.compat.v1.keras.initializers.glorot_normal(), shape=[dim], dtype=tf.float64)
     _b = tf.reshape(tf.tile(_b, [num_atoms]), [num_atoms, dim])
 
-    X1 = tf.layers.dense(X1, units=dim, use_bias=False)
-    X2 = tf.layers.dense(X2, units=dim, use_bias=False)
+    X1 = tf.keras.layers.Dense(units=dim, use_bias=False)(X1)
+    X2 = tf.keras.layers.Dense(units=dim, use_bias=False)(X2)
+    
+    X1 = tf.cast(X1, tf.float64)
+    X2 = tf.cast(X2, tf.float64)
+    _b = tf.cast(_b, tf.float64)
     
     output = tf.nn.sigmoid(X1+X2+_b)
 
@@ -50,9 +54,14 @@ def graph_conv_gate(A, X, weight, bias, label):
     _X = tf.nn.relu(_X)
 
     if( int(X.get_shape()[2]) != dim ):
-        X = tf.layers.dense(X, dim, use_bias=False)
+        X = tf.keras.layers.Dense(dim, use_bias=False)(X)
 
     coeff = get_gate_coeff(_X, X, dim, label)
+
+    X = tf.cast(X, tf.float64)
+    _X = tf.cast(_X, tf.float64)
+    coeff = tf.cast(coeff, tf.float64)
+
     _X = tf.multiply(_X, coeff) + tf.multiply(X,1.0-coeff)
 
     return _X, coeff
@@ -73,7 +82,7 @@ def ggnn(A, X, dim, num_layer):
     num_atoms = int(A.get_shape()[1])
 
     if ( int(X.get_shape()[2]) != dim ):
-        X = tf.layers.dense(X, dim, use_bias=False)
+        X = tf.keras.layers.Dense(dim, use_bias=False)(X)
 
     _m = tf.matmul(A, X)
 
@@ -109,9 +118,15 @@ def graph_attn_gate(A, X, weight, bias, attn, label):
     _A = tf.reduce_mean(A_total, 0)
 
     if( int(X.get_shape()[2]) != dim ):
-        X = tf.layers.dense(X, dim, use_bias=False)
+        X = tf.keras.layers.Dense(dim, use_bias=False)(X)
 
     coeff = get_gate_coeff(_X, X, dim, label)
+
+    _X = tf.cast(_X, tf.float64)
+    X = tf.cast(X, tf.float64)
+    coeff = tf.cast(coeff, tf.float64)
+    
+
     _X = tf.multiply(_X, coeff) + tf.multiply(X,1.0-coeff)
 
     return _X, _A, coeff

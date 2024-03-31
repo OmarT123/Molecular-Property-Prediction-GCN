@@ -6,3 +6,5 @@ results
 *.ckpt
 *.index
 *.meta
+visualization.py
+model_restoration.py
