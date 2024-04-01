@@ -110,6 +110,7 @@ class Graph2Property():
 
     def save(self, ckpt_path, global_step):
         self.saver.save(self.sess, ckpt_path, global_step=global_step)
+        file_writer = tf.compat.v1.summary.FileWriter(ckpt_path, self.sess.graph)
         print("model saved to '%s'" % (ckpt_path))
     
     def restore(self, ckpt_path):

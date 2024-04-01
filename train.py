@@ -10,17 +10,20 @@ tf.disable_v2_behavior()
 np.set_printoptions(precision=3)
 
 
-def loadInputs(FLAGS, idx, modelName, unitLen):
+def loadInputs(FLAGS, idx, modelName, unitLen): # Loads data from graph folders
     adj = None
     features = None
     adj = np.load('./database/'+FLAGS.database+'/adj/'+str(idx)+'.npy')
     features = np.load('./database/'+FLAGS.database+'/features/'+str(idx)+'.npy')
+    # Graph adjacency list and features
     retInput = (adj, features)
+    # Properties
     retOutput = (np.load('./database/'+FLAGS.database+'/'+FLAGS.output+'.npy')[idx*unitLen:(idx+1)*unitLen]).astype(float)
 
     return retInput, retOutput
 
 def training(model, FLAGS, modelName):
+    #Reading data from FLAGS
     num_epochs = FLAGS.epoch_size
     batch_size = FLAGS.batch_size
     decay_rate = FLAGS.decay_rate
@@ -28,9 +31,11 @@ def training(model, FLAGS, modelName):
     learning_rate = FLAGS.learning_rate
     num_DB = FLAGS.num_DB
     unitLen = FLAGS.unitLen
+
     total_iter = 0
     total_st = time.time()
-    print ("Start Training XD")
+
+    print ("Start Training")
     for epoch in range(num_epochs):
         # Learning rate scheduling 
         model.assign_lr(learning_rate * (decay_rate ** epoch))
@@ -45,6 +50,7 @@ def training(model, FLAGS, modelName):
                 A_batch = _graph[0][_iter*FLAGS.batch_size:(_iter+1)*FLAGS.batch_size]
                 X_batch = _graph[1][_iter*FLAGS.batch_size:(_iter+1)*FLAGS.batch_size]
                 P_batch = _property[_iter*FLAGS.batch_size:(_iter+1)*FLAGS.batch_size]
+                #Train for 4 iterations then test on 1
                 if total_iter % 5 != 0:
                     # Training
                     cost = model.train(A_batch, X_batch, P_batch)
@@ -54,11 +60,13 @@ def training(model, FLAGS, modelName):
                     # Test accuracy
                     Y, cost = model.test(A_batch, X_batch, P_batch)
                     print ("test_iter : ", total_iter, ", epoch : ", epoch, ", cost :  ", cost)
+                    # Calculate error every 100 iterations
                     if( total_iter % 100 == 0 ):
                         mse = (np.mean(np.power((Y.flatten() - P_batch),2)))
                         mae = (np.mean(np.abs(Y.flatten() - P_batch)))
                         print ("MSE : ", mse, "\t MAE : ", mae)
-        
+
+                # Save the parameters every 'save_every' iterations
                 if total_iter % save_every == 0:
                     # Save network! 
                     ckpt_path = 'save/'+modelName+'.ckpt'
