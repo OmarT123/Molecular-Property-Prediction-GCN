@@ -8,6 +8,10 @@ from Graph2Property import Graph2Property
 import tensorflow.compat.v1 as tf
 tf.disable_v2_behavior()
 np.set_printoptions(precision=3)
+import dgl
+from dgl.data import QM9Dataset
+
+
 
 
 def loadInputs(FLAGS, idx, modelName, unitLen): # Loads data from graph folders
@@ -40,63 +44,112 @@ def training(model, FLAGS, modelName):
         # Learning rate scheduling 
         model.assign_lr(learning_rate * (decay_rate ** epoch))
 
-        for i in range(0,num_DB):
-            _graph, _property = loadInputs(FLAGS, i, modelName, unitLen)
-            num_batches = int(_graph[0].shape[0]/batch_size)
+        num_graphs = len(dataset)
+        #loop on number of graphs
+        st=time.time()
+        for i in range(0, num_graphs):
+            _graph, _property = dataset[i]
+            print()
+            print(_graph)
+            graph = dgl.add_nodes(_graph, 29-len(_graph.ndata['R']))
+            print(graph)
+            total_iter += 1
+            # print(_graph)
+            A_batch = _graph.ndata['R']
+            X_batch = _graph.ndata['Z']
+            P_batch = _property
+            # print(A_batch, X_batch, P_batch)
+            #Train for 4 iterations then test on 1
+            if total_iter % 5 != 0:
+                # Training
+                cost = model.train(A_batch, X_batch, P_batch)
+                print ("train_iter : ", total_iter, ", epoch : ", epoch, ", cost :  ", cost)
+            else:
+                # Test accuracy
+                Y, cost = model.test(A_batch, X_batch, P_batch)
+                print ("test_iter : ", total_iter, ", epoch : ", epoch, ", cost :  ", cost)
+                # Calculate error every 100 iterations
+                if( total_iter % 100 == 0 ):
+                    mse = (np.mean(np.power((Y.flatten() - P_batch),2)))
+                    mae = (np.mean(np.abs(Y.flatten() - P_batch)))
+                    print ("MSE : ", mse, "\t MAE : ", mae)
+            if total_iter % save_every == 0:
+                # Save network! 
+                ckpt_path = 'save/'+modelName+'.ckpt'
+                model.save(ckpt_path, total_iter)
+        et = time.time()
+        print ("time : ", et-st)
+        st = time.time()
 
-            st = time.time()
-            for _iter in range(num_batches):
-                total_iter += 1
-                A_batch = _graph[0][_iter*FLAGS.batch_size:(_iter+1)*FLAGS.batch_size]
-                X_batch = _graph[1][_iter*FLAGS.batch_size:(_iter+1)*FLAGS.batch_size]
-                P_batch = _property[_iter*FLAGS.batch_size:(_iter+1)*FLAGS.batch_size]
-                #Train for 4 iterations then test on 1
-                if total_iter % 5 != 0:
-                    # Training
-                    cost = model.train(A_batch, X_batch, P_batch)
-                    print ("train_iter : ", total_iter, ", epoch : ", epoch, ", cost :  ", cost)
 
-                elif total_iter % 5 == 0:
-                    # Test accuracy
-                    Y, cost = model.test(A_batch, X_batch, P_batch)
-                    print ("test_iter : ", total_iter, ", epoch : ", epoch, ", cost :  ", cost)
-                    # Calculate error every 100 iterations
-                    if( total_iter % 100 == 0 ):
-                        mse = (np.mean(np.power((Y.flatten() - P_batch),2)))
-                        mae = (np.mean(np.abs(Y.flatten() - P_batch)))
-                        print ("MSE : ", mse, "\t MAE : ", mae)
+        # for i in range(0,num_DB):
+        #     _graph, _property = loadInputs(FLAGS, i, modelName, unitLen)
+        #     num_batches = int(_graph[0].shape[0]/batch_size)
 
-                # Save the parameters every 'save_every' iterations
-                if total_iter % save_every == 0:
-                    # Save network! 
-                    ckpt_path = 'save/'+modelName+'.ckpt'
-                    model.save(ckpt_path, total_iter)
+        #     st = time.time()
+        #     for _iter in range(num_batches):
+        #         total_iter += 1
+        #         A_batch = _graph[0][_iter*FLAGS.batch_size:(_iter+1)*FLAGS.batch_size]
+        #         X_batch = _graph[1][_iter*FLAGS.batch_size:(_iter+1)*FLAGS.batch_size]
+        #         P_batch = _property[_iter*FLAGS.batch_size:(_iter+1)*FLAGS.batch_size]
+        #         #Train for 4 iterations then test on 1
+        #         if total_iter % 5 != 0:
+        #             # Training
+        #             cost = model.train(A_batch, X_batch, P_batch)
+        #             print ("train_iter : ", total_iter, ", epoch : ", epoch, ", cost :  ", cost)
 
-            et = time.time()
-            print ("time : ", et-st)
-            st = time.time()
+        #         elif total_iter % 5 == 0:
+        #             # Test accuracy
+        #             Y, cost = model.test(A_batch, X_batch, P_batch)
+        #             print ("test_iter : ", total_iter, ", epoch : ", epoch, ", cost :  ", cost)
+        #             # Calculate error every 100 iterations
+        #             if( total_iter % 100 == 0 ):
+        #                 mse = (np.mean(np.power((Y.flatten() - P_batch),2)))
+        #                 mae = (np.mean(np.abs(Y.flatten() - P_batch)))
+        #                 print ("MSE : ", mse, "\t MAE : ", mae)
+
+        #         # Save the parameters every 'save_every' iterations
+        #         if total_iter % save_every == 0:
+        #             # Save network! 
+        #             ckpt_path = 'save/'+modelName+'.ckpt'
+        #             model.save(ckpt_path, total_iter)
+
+            # et = time.time()
+            # print ("time : ", et-st)
+            # st = time.time()
 
     total_et = time.time()
     print ("Finish training! Total required time for training : ", (total_et-total_st))
     return
 
 # execution : ex)  python train.py GCN logP 3 100 0.001 0.95
-method = sys.argv[1] # GCN
-prop = sys.argv[2] # logP
-num_layer = int(sys.argv[3]) # 3
-epoch_size = int(sys.argv[4]) # 100 
-learning_rate = float(sys.argv[5]) # 0.001
-decay_rate = float(sys.argv[6]) # 0.95
+# method = sys.argv[1] # GCN
+# prop = sys.argv[2] # logP
+# num_layer = int(sys.argv[3]) # 3
+# epoch_size = int(sys.argv[4]) # 100 
+# learning_rate = float(sys.argv[5]) # 0.001
+# decay_rate = float(sys.argv[6]) # 0.95
+method = 'GCN'
+prop = 'mu'
+num_layer = 3
+epoch_size = 100
+learning_rate = 0.001
+decay_rate = 0.95
+# Load QM9 dataset
+dataset = QM9Dataset(['mu'])
+numDB = 130831
+unit_len = 10000
+database = 'QM9'
 
-database = ''
-if (prop in ['TPSA2', 'logP', 'SAS']):
-    database = 'QM9'
-    numDB = 13
-    unit_len = 10000
-elif (prop == 'pve'):
-    database = 'CEP'
-    numDB = 27
-    unit_len = 1000
+# database = ''
+# if (prop in ['TPSA2', 'logP', 'SAS']):
+#     database = 'QM9'
+#     numDB = 13
+#     unit_len = 10000
+# elif (prop == 'pve'):
+#     database = 'CEP'
+#     numDB = 27
+#     unit_len = 1000
 
 print ('method :', method, '\t prop :', prop, '\t num_layer :', num_layer, '\t epoch_size :', epoch_size, '\t learning_rate :', learning_rate, '\t decay_rate :', decay_rate, '\t Database :', database, '\t num_DB :', numDB)
 

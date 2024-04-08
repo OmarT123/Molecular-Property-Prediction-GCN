@@ -11,3 +11,4 @@ model_restoration.py
 QM9-save
 GCN-save
 getting_database.py
+trial_model.py
