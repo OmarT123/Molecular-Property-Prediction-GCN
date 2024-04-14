@@ -1,6 +1,8 @@
 import numpy as np
 import sys
 from rdkit import Chem
+import pandas as pd
+
 
 def adj_k(adj, k): # Compute k-th power of adj matrix
 
@@ -76,14 +78,23 @@ def one_of_k_encoding_unk(x, allowable_set): # One hot encoding function
 # python smilesToGraph.py CEP 1000 1    --- to generate graph inputs for CEP dataset 
 # python smilesToGraph.py ZINC 10000 1  --- to generate graph inputs for ZINC dataset
 
-dbName = sys.argv[1]        # CEP, ZINC, QM9
-length = int(sys.argv[2])   # num molecules in graph input files
-k = int(sys.argv[3])        # neighbor distance
+# dbName = sys.argv[1]        # CEP, ZINC, QM9
+# length = int(sys.argv[2])   # num molecules in graph input files
+# k = int(sys.argv[3])        # neighbor distance
 
-smiles_f = open('./'+dbName+'/smiles.txt')
-smiles_list = smiles_f.readlines()
-print (len(smiles_list))
-maxNum = int(len(smiles_list)/length)
+
+dbName = "QM9_deepchem"
+dbPath = "./QM9_deepchem/qm9.csv"
+length = 500
+k = 1
+df = pd.read_csv(dbPath)
+smiles_list = df['smiles'].tolist()
+num_smiles = len(smiles_list)
+
+# smiles_f = open('./'+dbName+'/smiles.txt')
+# smiles_list = smiles_f.readlines()
+# print (len(smiles_list))
+maxNum = int(num_smiles/length)
 
 for i in range(maxNum+1):
     lb = i*length

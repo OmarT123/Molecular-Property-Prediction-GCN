@@ -5,6 +5,7 @@ import time
 import sys
 sys.path.insert(0, './model')
 from Graph2Property import Graph2Property
+import pandas as pd
 import tensorflow.compat.v1 as tf
 tf.disable_v2_behavior()
 np.set_printoptions(precision=3)
@@ -81,24 +82,54 @@ def training(model, FLAGS, modelName):
     return
 
 # execution : ex)  python train.py GCN logP 3 100 0.001 0.95
-method = sys.argv[1] # GCN
-prop = sys.argv[2] # logP
-num_layer = int(sys.argv[3]) # 3
-epoch_size = int(sys.argv[4]) # 100 
-learning_rate = float(sys.argv[5]) # 0.001
-decay_rate = float(sys.argv[6]) # 0.95
+# method = sys.argv[1] # GCN
+# prop = sys.argv[2] # logP
+# num_layer = int(sys.argv[3]) # 3
+# epoch_size = int(sys.argv[4]) # 100 
+# learning_rate = float(sys.argv[5]) # 0.001
+# decay_rate = float(sys.argv[6]) # 0.95
 
-database = ''
-if (prop in ['TPSA2', 'logP', 'SAS']):
-    database = 'QM9'
-    numDB = 13
-    unit_len = 10000
-elif (prop == 'pve'):
-    database = 'CEP'
-    numDB = 27
-    unit_len = 1000
 
-print ('method :', method, '\t prop :', prop, '\t num_layer :', num_layer, '\t epoch_size :', epoch_size, '\t learning_rate :', learning_rate, '\t decay_rate :', decay_rate, '\t Database :', database, '\t num_DB :', numDB)
+database = 'QM9_deepchem'
+numDB = 267
+unit_len = 500
+method = "GCN" # Can be set to GCN, GCN+a, GCN+g, GCN+a+g
+prop = "homo" # Can be set to A,B,C,mu,alpha,homo,lumo,gap,r2,zpve,u0,u298,h298,g298,cv,u0_atom,u298_atom,h298_atom,g298_atom
+
+# Can experiment with different numbers for the following hyperparameters
+num_layer = 3 
+num_epochs = 100
+learning_rate = 0.001
+decay_rate = 0.95
+
+
+# Get props
+
+dbPath = "./database/QM9_deepchem/qm9.csv"
+prop_path = f'./database/{database}/{prop}.npy'
+if not os.path.exists(prop_path):
+    df = pd.read_csv(dbPath)
+    prop_list = df[prop].tolist()
+    num_props = len(prop_list)
+    # print(prop_list)
+    print(num_props)
+
+    np.save(prop_path, prop_list)
+
+
+# database = ''
+# if (prop in ['TPSA2', 'logP', 'SAS']):
+#     database = 'QM9'
+#     numDB = 13
+#     unit_len = 10000
+# elif (prop == 'pve'):
+#     database = 'CEP'
+#     numDB = 27
+#     unit_len = 1000
+
+
+
+print ('method :', method, '\t prop :', prop, '\t num_layer :', num_layer, '\t num_epochs :', num_epochs, '\t learning_rate :', learning_rate, '\t decay_rate :', decay_rate, '\t Database :', database, '\t num_DB :', numDB)
 
 
 #os.environ["CUDA_VISIBLE_DEVICES"] = "0"
@@ -113,7 +144,7 @@ flags.DEFINE_string('optimizer', 'Adam', 'Options : Adam, SGD, RMSProp')
 flags.DEFINE_string('readout', 'atomwise', 'Options : atomwise, graph_gather') 
 flags.DEFINE_integer('latent_dim', 512, 'Dimension of a latent vector for autoencoder')
 flags.DEFINE_integer('num_layers', num_layer, '# of hidden layers')
-flags.DEFINE_integer('epoch_size', epoch_size, 'Epoch size')
+flags.DEFINE_integer('epoch_size', num_epochs, 'Epoch size')
 flags.DEFINE_integer('batch_size', 100, 'Batch size')
 flags.DEFINE_integer('save_every', 1000, 'Save every')
 flags.DEFINE_float('learning_rate', learning_rate, 'Learning Rate')
@@ -130,5 +161,11 @@ print ("Using readout funciton of", FLAGS.readout)
 print ("A learning rate is", str(FLAGS.learning_rate), "with a decay rate", str(FLAGS.decay_rate))
 print ("Using", FLAGS.loss_type, "for loss function in an optimization")
 
+# _graph, _property = loadInputs(FLAGS, 0, 'modelName', unit_len)
+
+# print(_graph[0].shape)
+# print(_graph[0][0*FLAGS.batch_size:(0+1)*FLAGS.batch_size].shape)
+# num_batches = int(_graph[0].shape[0]/FLAGS.batch_size)
+# print(num_batches)
 model = Graph2Property(FLAGS)
 training(model, FLAGS, modelName)
