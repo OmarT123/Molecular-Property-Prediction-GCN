@@ -13,7 +13,9 @@ GCN-save
 getting_database.py
 trial_model.py
 getFeatures.py
-qm9_dataset.py
 tmp.ipynb
 *.pickle
-qm9_dataset.py
+train.ipynb
+visual.py
+working_training_method.py
+logs

@@ -9,6 +9,9 @@ import pandas as pd
 import tensorflow.compat.v1 as tf
 tf.disable_v2_behavior()
 np.set_printoptions(precision=3)
+import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
+
 
 
 def loadInputs(FLAGS, idx, modelName, unitLen): # Loads data from graph folders
@@ -36,10 +39,21 @@ def training(model, FLAGS, modelName):
     total_iter = 0
     total_st = time.time()
 
+    mse_total = []
+    mae_total = []
+
+    mse = sys.float_info.max
+    best_mse = sys.float_info.max
+    best_model_dir = f'./save/{modelName}_best'
+    if not os.path.exists(best_model_dir):
+        os.mkdir(best_model_dir)
+
     print ("Start Training")
     for epoch in range(num_epochs):
         # Learning rate scheduling 
         model.assign_lr(learning_rate * (decay_rate ** epoch))
+        train_loss_epoch = 0
+        test_loss_epoch = 0
 
         for i in range(0,num_DB):
             _graph, _property = loadInputs(FLAGS, i, modelName, unitLen)
@@ -65,6 +79,14 @@ def training(model, FLAGS, modelName):
                     if( total_iter % 100 == 0 ):
                         mse = (np.mean(np.power((Y.flatten() - P_batch),2)))
                         mae = (np.mean(np.abs(Y.flatten() - P_batch)))
+                        train_summary_writer.add_summary(
+                            tf.Summary(value=[tf.Summary.Value(tag='mse', simple_value=mse)])
+                        )
+                        train_summary_writer.add_summary(
+                            tf.Summary(value=[tf.Summary.Value(tag='mae', simple_value=mae)])
+                        )
+                        mse_total.append(mse)
+                        mae_total.append(mae)
                         print ("MSE : ", mse, "\t MAE : ", mae)
 
                 # Save the parameters every 'save_every' iterations
@@ -72,14 +94,53 @@ def training(model, FLAGS, modelName):
                     # Save network! 
                     ckpt_path = 'save/'+modelName+'.ckpt'
                     model.save(ckpt_path, total_iter)
+                    if best_mse > mse:
+                        model.save(best_model_dir+"/best_model.ckpt", epoch)
+                        best_mse = mse
 
             et = time.time()
             print ("time : ", et-st)
             st = time.time()
-
     total_et = time.time()
     print ("Finish training! Total required time for training : ", (total_et-total_st))
-    return
+    mse_npy = np.array(mse_total)
+    mae_npy = np.array(mae_total)
+    return mse_npy, mae_npy
+
+def plot_loss(gcn_train_loss, gcn_val_loss):
+    """Plot the loss for each epoch
+
+    Args:
+        epochs (int): number of epochs
+        train_loss (array): training losses for each epoch
+        val_loss (array): validation losses for each epoch
+    """
+    plt.plot(gcn_train_loss, label="MSE")
+    plt.plot(gcn_val_loss, label="MAE")
+    plt.legend()
+    plt.ylabel("loss")
+    plt.xlabel("epoch")
+    plt.title("Model Loss")
+    plt.gca().xaxis.set_major_locator(MaxNLocator(integer=True))
+    plt.show()
+
+def plot_targets(pred, ground_truth):
+    """Plot true vs predicted value in a scatter plot
+
+    Args:
+        pred (array): predicted values
+        ground_truth (array): ground truth values
+    """
+    f, ax = plt.subplots(figsize=(6, 6))
+    ax.scatter(pred, ground_truth, s=0.5)
+    plt.xlim(-2, 7)
+    plt.ylim(-2, 7)
+    ax.axline((1, 1), slope=1)
+    plt.xlabel("Predicted Value")
+    plt.ylabel("Ground truth")
+    plt.title("Ground truth vs prediction")
+    plt.show()
+
 
 # execution : ex)  python train.py GCN logP 3 100 0.001 0.95
 # method = sys.argv[1] # GCN
@@ -94,11 +155,11 @@ database = 'QM9_deepchem'
 numDB = 267
 unit_len = 500
 method = "GCN" # Can be set to GCN, GCN+a, GCN+g, GCN+a+g
-prop = "homo" # Can be set to A,B,C,mu,alpha,homo,lumo,gap,r2,zpve,u0,u298,h298,g298,cv,u0_atom,u298_atom,h298_atom,g298_atom
+prop = "mu" # Can be set to A,B,C,mu,alpha,homo,lumo,gap,r2,zpve,u0,u298,h298,g298,cv,u0_atom,u298_atom,h298_atom,g298_atom
 
 # Can experiment with different numbers for the following hyperparameters
 num_layer = 3 
-num_epochs = 100
+num_epochs = 150
 learning_rate = 0.001
 decay_rate = 0.95
 
@@ -115,6 +176,7 @@ if not os.path.exists(prop_path):
     print(num_props)
 
     np.save(prop_path, prop_list)
+
 
 
 # database = ''
@@ -154,6 +216,19 @@ flags.DEFINE_integer('unitLen', unit_len, '')
 
 modelName = FLAGS.model + '_' + str(FLAGS.num_layers) + '_' + FLAGS.output + '_' + FLAGS.readout + '_' + str(FLAGS.latent_dim) + '_' + FLAGS.database
 
+
+log_dir = f"./logs/{modelName}"
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir)
+    os.makedirs(os.path.join(log_dir, 'train'))
+    os.makedirs(os.path.join(log_dir, 'test'))
+
+# Create summary writers for train and validation
+train_summary_writer = tf.summary.FileWriter(log_dir+"/train")
+# val_summary_writer = tf.summary.create_file_writer(log_dir + '/validation')
+
+
+
 print ("Summary of this training & testing")
 print ("Model name is", modelName)
 print ("A Latent vector dimension is", str(FLAGS.latent_dim))
@@ -168,4 +243,12 @@ print ("Using", FLAGS.loss_type, "for loss function in an optimization")
 # num_batches = int(_graph[0].shape[0]/FLAGS.batch_size)
 # print(num_batches)
 model = Graph2Property(FLAGS)
-training(model, FLAGS, modelName)
+mse, mae = training(model, FLAGS, modelName)
+
+train_summary_writer.close()
+
+
+np.save(f"./mse_{prop}", mse)
+np.save(f"./mae_{prop}", mae)
+
+plot_loss(mse, mae)
