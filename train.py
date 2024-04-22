@@ -41,6 +41,7 @@ def training(model, FLAGS, modelName):
 
     mse_total = []
     mae_total = []
+    learning_rates = []
 
     mse = sys.float_info.max
     best_mse = sys.float_info.max
@@ -50,10 +51,10 @@ def training(model, FLAGS, modelName):
 
     print ("Start Training")
     for epoch in range(num_epochs):
-        # Learning rate scheduling 
-        model.assign_lr(learning_rate * (decay_rate ** epoch))
-        train_loss_epoch = 0
-        test_loss_epoch = 0
+        # Learning rate scheduling
+        new_learning_rate = (learning_rate * (decay_rate ** epoch))
+        model.assign_lr(new_learning_rate)
+        learning_rates.append(new_learning_rate)
 
         for i in range(0,num_DB):
             _graph, _property = loadInputs(FLAGS, i, modelName, unitLen)
@@ -106,6 +107,8 @@ def training(model, FLAGS, modelName):
     mse_npy = np.array(mse_total)
     mae_npy = np.array(mae_total)
     return mse_npy, mae_npy
+
+
 
 def plot_loss(gcn_train_loss, gcn_val_loss):
     """Plot the loss for each epoch
@@ -252,3 +255,5 @@ np.save(f"./mse_{prop}", mse)
 np.save(f"./mae_{prop}", mae)
 
 plot_loss(mse, mae)
+
+#visualize learning_rates array

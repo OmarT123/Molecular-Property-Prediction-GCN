@@ -61,7 +61,6 @@ class Graph2Property():
         P = tf.cast(P, tf.float64) 
         _P = tf.cast(_P, tf.float64)
         loss = tf.reduce_mean(tf.pow((P-_P),2)) #Compute mean of the squared errors across all samples in the batch
-
         return loss
 
     def optimizer(self, lr, opt_type): #Get Optimizer from tf.train (Options: Adam, RMSProp, SGD)
@@ -72,7 +71,6 @@ class Graph2Property():
             optimizer = tf.train.RMSPropOptimizer(lr)
         elif( opt_type == 'SGD' ):
             optimizer = tf.train.GradientDescentOptimizer(lr)
-
         return optimizer.minimize(self.loss)
 
     def get_output(self):
@@ -83,6 +81,10 @@ class Graph2Property():
         return loss
 
     def test(self, A, X, P):
+        _P, loss = self.sess.run([self._P, self.loss], feed_dict = {self.A : A, self.X : X, self.P : P})
+        return _P, loss
+    
+    def validate(self, A, X, P):
         _P, loss = self.sess.run([self._P, self.loss], feed_dict = {self.A : A, self.X : X, self.P : P})
         return _P, loss
 
