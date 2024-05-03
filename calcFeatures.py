@@ -1,158 +1,32 @@
-# import numpy as np
-# from rdkit import Chem
-# from rdkit.Chem import AllChem
-# from rdkit.Chem import Descriptors
-
-
-# def get_atom_coordinates(smiles):
-#     mol = Chem.MolFromSmiles(smiles)
-#     if mol is None:
-#         return None
-
-#     # mol = Chem.AddHs(mol)  # Add hydrogens for better representation of 3D structure
-#     AllChem.EmbedMolecule(mol)  # Generate 3D coordinates
-#     AllChem.MMFFOptimizeMolecule(mol)  # Optimize geometry using MMFF force field
-
-#     conformer = mol.GetConformer()
-#     num_atoms = mol.GetNumAtoms()
-#     coordinates = np.zeros((num_atoms, 3))
-
-#     for atom in mol.GetAtoms():
-#         atom_idx = atom.GetIdx()
-#         pos = conformer.GetAtomPosition(atom_idx)
-#         coordinates[atom_idx] = [pos.x, pos.y, pos.z]
-#     return coordinates
-
-
-# def get_atomic_numbers(smiles):
-#     """
-#     Calculate atomic numbers from a molecule in SMILES format.
-    
-#     Args:
-#         smiles (str): SMILES representation of the molecule.
-    
-#     Returns:
-#         list: List of atomic numbers.
-#     """
-#     mol = Chem.MolFromSmiles(smiles)
-#     atomic_numbers = [atom.GetAtomicNum() for atom in mol.GetAtoms()]
-#     return np.array(atomic_numbers, dtype=float)
-
-# def get_atomic_charges(smiles):
-#     """
-#     Calculate atomic charges from a molecule in SMILES format.
-    
-#     Args:
-#         smiles (str): SMILES representation of the molecule.
-    
-#     Returns:
-#         list: List of atomic charges.
-#     """
-#     mol = Chem.MolFromSmiles(smiles)
-#     charges = [atom.GetFormalCharge() for atom in mol.GetAtoms()]
-#     return np.array(charges, dtype=float)
-
-# def get_atomic_masses(smiles):
-#     """
-#     Calculate atomic masses from a molecule in SMILES format.
-    
-#     Args:
-#         smiles (str): SMILES representation of the molecule.
-    
-#     Returns:
-#         list: List of atomic masses.
-#     """
-#     mol = Chem.MolFromSmiles(smiles)
-#     masses = [atom.GetMass() for atom in mol.GetAtoms()]
-#     return masses
-
-# def get_atomic_hybridizations(smiles):
-#     """
-#     Calculate atomic hybridizations from a molecule in SMILES format.
-
-#     Args:
-#         smiles (str): SMILES representation of the molecule.
-
-#     Returns:
-#         list: List of atomic hybridizations (numerical representation).
-#     """
-#     mol = Chem.MolFromSmiles(smiles)
-#     hybridizations = [atom.GetHybridization().real for atom in mol.GetAtoms()]  # Get numerical representation
-#     return np.array(hybridizations, dtype=float)
-
-# def get_bond_types(smiles):
-#     """
-#     Calculate bond types from a molecule in SMILES format.
-
-#     Args:
-#         smiles (str): SMILES representation of the molecule.
-
-#     Returns:
-#         list: List of bond types (numerical representation).
-#     """
-#     mol = Chem.MolFromSmiles(smiles)
-#     bond_types = [bond.GetBondTypeAsDouble() for bond in mol.GetBonds()]  # Get numerical representation
-#     return bond_types
-
-# def get_molecular_connectivity(smiles):
-#     """
-#     Calculate molecular connectivity from a molecule in SMILES format.
-
-#     Args:
-#         smiles (str): SMILES representation of the molecule.
-
-#     Returns:
-#         float: Molecular connectivity value.
-#     """
-#     mol = Chem.MolFromSmiles(smiles)
-#     mc = Descriptors.MolWt(mol)  # Use molecular weight as a measure of molecular connectivity
-#     return np.array([mc])
-
-
-
-# def combine_features(smiles):
-#     """
-#     Combine all features into a single feature matrix.
-
-#     Args:
-#         smiles (str): SMILES representation of the molecule.
-
-#     Returns:
-#         np.array: Feature matrix containing all features (shape: (9, 10)).
-#     """
-#     # Initialize an empty feature matrix
-#     feature_matrix = np.zeros((9, 10))
-
-#     # Get features
-#     atomic_coords = get_atom_coordinates(smiles)
-#     atomic_nums = get_atomic_numbers(smiles)
-#     atomic_charges = get_atomic_charges(smiles)
-#     atomic_masses = get_atomic_masses(smiles)
-#     atomic_hybridizations = get_atomic_hybridizations(smiles)
-#     bond_types = get_bond_types(smiles)
-#     molecular_connectivity = get_molecular_connectivity(smiles)
-
-#     # Determine the number of atoms in the molecule
-#     num_atoms = len(atomic_coords)
-    
-#     # Update feature matrix with features for each atom
-#     for i in range(num_atoms):
-#         feature_matrix[i, 0:3] = atomic_coords[i] if i < len(atomic_coords) else 0 #matrix
-#         feature_matrix[i, 3] = atomic_nums[i] if i < len(atomic_nums) else 0 #list
-#         feature_matrix[i, 4] = atomic_charges[i] if i < len(atomic_charges) else 0 #list
-#         feature_matrix[i, 5] = atomic_masses[i] if i < len(atomic_masses) else 0 #list
-#         feature_matrix[i, 6] = atomic_hybridizations[i] if i < len(atomic_hybridizations) else 0 #list
-#         feature_matrix[i, 7] = bond_types[i] if i < len(bond_types) else 0 #list
-#         feature_matrix[i, 8] = molecular_connectivity[i] if i < len(molecular_connectivity) else 0 #float
-
-#     return feature_matrix
-
-
-
 from rdkit import Chem
 import numpy as np
 import pandas as pd
 import sys
+import os
+from rdkit import Chem
+from rdkit.Chem import Draw
+import numpy as np
+
+MAX_NUM_ATOMS = 9
+
+PAULING_ELECTRONEGATIVITY = {
+    6: 2.55,   # Carbon
+    7: 3.04,   # Nitrogen
+    8: 3.44,   # Oxygen
+}
+
+def mol_features(smiles):
+    mol = Chem.MolFromSmiles(smiles)
+
+    feature_matrix = []
+
+    for atom in mol.GetAtoms():
+        feature_matrix.append(atom_feature(atom))
+
+    while (len(feature_matrix) < MAX_NUM_ATOMS):
+        feature_matrix.append(np.zeros(21, dtype=int))
+    
+    return feature_matrix
 
 def calculate_molecule_features(smiles):
     mol = Chem.MolFromSmiles(smiles)
@@ -160,44 +34,51 @@ def calculate_molecule_features(smiles):
         return None
 
     num_atoms = mol.GetNumAtoms()
-    feature_matrix = np.zeros((9, 7), dtype=float)
+    feature_matrix = np.zeros((MAX_NUM_ATOMS, 8), dtype=int)  # Modified to include electronegativity
 
     for i, atom in enumerate(mol.GetAtoms()):
         # Atomic number
-        feature_matrix[i, 0] = atom.GetAtomicNum()
-
+        atomic_number = atom.GetAtomicNum()
+        feature_matrix[i, 0] = atomic_number
         # Atomic mass
         feature_matrix[i, 1] = atom.GetMass()
 
         # Atomic charge
-        feature_matrix[i, 2] = atom.GetFormalCharge()
+        # feature_matrix[i, 2] = atom.GetFormalCharge()
 
         # Atomic hybridization
         hybridization = str(atom.GetHybridization()).lower()
         if hybridization == 's':
-            feature_matrix[i, 3] = 0
+            feature_matrix[i, 2] = 0
         elif hybridization == 'sp':
-            feature_matrix[i, 3] = 1
+            feature_matrix[i, 2] = 1
         elif hybridization == 'sp2':
-            feature_matrix[i, 3] = 2
+            feature_matrix[i, 2] = 2
         elif hybridization == 'sp3':
-            feature_matrix[i, 3] = 3
+            feature_matrix[i, 2] = 3
         else:
-            feature_matrix[i, 3] = -1  # Unknown hybridization
+            feature_matrix[i, 2] = -1  # Unknown hybridization
 
         # Bond types
         bond_types = [bond.GetBondTypeAsDouble() for bond in atom.GetBonds()]
-        feature_matrix[i, 4] = sum(bond_types)
+        feature_matrix[i, 3] = sum(bond_types)
 
         # Molecular connectivity
-        feature_matrix[i, 5] = len(atom.GetNeighbors())
+        feature_matrix[i, 4] = len(atom.GetNeighbors())
 
         # Aromaticity
-        feature_matrix[i, 6] = int(atom.GetIsAromatic())
-    while i < 9:
+        # feature_matrix[i, 6] = int(atom.GetIsAromatic())
+        
+        # Electronegativity (Pauling scale)
+        feature_matrix[i, 5] = PAULING_ELECTRONEGATIVITY.get(atomic_number, 0) 
+    i+=1
+    # Fill remaining rows with zeros if less than MAX_NUM_ATOMS
+    while i < MAX_NUM_ATOMS:
         feature_matrix[i, :] = 0.0
         i += 1
+    
     return feature_matrix
+
 
 def adjacency_matrix_from_smiles(smiles):
     mol = Chem.MolFromSmiles(smiles)
@@ -216,58 +97,55 @@ def adjacency_matrix_from_smiles(smiles):
 
     return adj_matrix
 
-MAX_NUM_ATOMS = 9
-molecules = pd.read_csv('./database/QM9_deepchem/qm9.csv')['smiles']
+def atom_feature(atom): # Computes features of each atom 
+    return np.array(one_of_k_encoding_unk(atom.GetSymbol(), ['C', 'N', 'O']) +
+                    one_of_k_encoding(atom.GetDegree(), [0, 1, 2, 3, 4, 5]) +
+                    one_of_k_encoding_unk(atom.GetTotalNumHs(), [0, 1, 2, 3, 4]) +
+                    one_of_k_encoding_unk(atom.GetImplicitValence(), [0, 1, 2, 3, 4, 5]) +
+                    [atom.GetIsAromatic()])
 
-features = []
-tmp_features = []
-adjs = []
-tmp_adj = []
-i = 1
-total_errors = 0
+def one_of_k_encoding(x, allowable_set): # One hot encoding function
+    if x not in allowable_set:
+        raise Exception("input {0} not in allowable set{1}:".format(x, allowable_set))
+    #print list((map(lambda s: x == s, allowable_set)))
+    return list(map(lambda s: x == s, allowable_set))
 
-# for mol in molecules:
-#     try:
-#         adj = adjacency_matrix_from_smiles(mol)
-#         feature = calculate_molecule_features(mol)
-#         tmp_adj.append(adj)
-#         tmp_features.append(feature)
-#         if i % 500 == 0:
-#             adjs.append(adj)
-#             features.append(tmp_features)
-#             tmp_adj = []
-#             tmp_features = []
-#             print(adjs.shape)
-#         i += 1
-#     except:
-#         total_errors += 1
+def one_of_k_encoding_unk(x, allowable_set): # One hot encoding function
+    """Maps inputs not in the allowable set to the last element."""
+    if x not in allowable_set:
+        x = allowable_set[-1]
+    return list(map(lambda s: x == s, allowable_set))
 
-for mol in molecules:
-    try:
-        adj = adjacency_matrix_from_smiles(mol)
-        feature = calculate_molecule_features(mol)
-        adjs.append(adj)
-        features.append(feature)
-    except:
-        total_errors += 1
+def convert_dataset(dataset_path, stage):
+    dataset = pd.read_csv(dataset_path)
+    molecules = dataset['smiles']
 
-print(f"Successfully converted {len(molecules) - total_errors} molecules out of {len(molecules)}")
+    features = []
+    adjs = []
+    total_errors = 0
 
-# if len(tmp_features) > 0:
-#     while len(tmp_features) != 500:
-#         tmp_adj.append(np.zeros(9, 7), dtype=float)
-#         tmp_features.append(np.zeros((9, 7), dtype=float))
-#     adjs.append(tmp_adj)
-#     features.append(tmp_features)
+    for mol in molecules:
+        try:
+            adj = adjacency_matrix_from_smiles(mol)
+            feature = mol_features(mol)
+            adjs.append(adj)
+            features.append(feature)
+        except Exception as e:
+            total_errors += 1
+            print(mol)
+            print(e)
 
-# if len(tmp_adj) > 0:
-#     adjs.append(tmp_adj)
-#     features.append(tmp_features)
 
-adjs = np.array(adjs)
-features = np.array(features)
+    print(f"Successfully converted {len(molecules) - total_errors} molecules out of {len(molecules)} to graphs for {stage} stage")
 
-np.save('./database/QM9_deepchem/new_adj.npy', adjs)
-np.save('./database/QM9_deepchem/new_features.npy', features)
-# print(features)
-# print(features.shape)
+    adjs = np.array(adjs)
+    features = np.array(features)
+
+    dir_path = os.path.dirname(dataset_path)
+
+    np.save(os.path.join(dir_path, f'{stage}_adj.npy'), adjs)
+    np.save(os.path.join(dir_path, f'{stage}_features.npy'), features)
+
+convert_dataset('./database/QM9_deepchem/train_data.csv', 'train')
+convert_dataset('./database/QM9_deepchem/val_data.csv', 'valid')
+convert_dataset('./database/QM9_deepchem/test_data.csv', 'test')

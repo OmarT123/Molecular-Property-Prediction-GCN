@@ -1,37 +1,30 @@
-# augmented-GCN
+# Predicting Molecular Properties using GCNs
 
-***
+## Under Construction
 
-This repository provides implementations introduced in 
-"Deeply learning molecular structure property relationships using attention- and gate-augmented graph convolutional network".
+🚧 This project is currently under construction. 🚧
 
-***
+Thank you for your patience!
 
-# Usage
-We used several scripts and a 'Harvard Clean Energy Project (CEP)' dataset in https://github.com/HIPS/neural-fingerprint.
+## Description
 
-## 1. First, make results and save directories to save output files and save files, respectively.
 
-> mkdir results 
-> mkdir save
 
-## 2. Convert smiles files to graph inputs at a database folder.
+## Installation
 
-> cd database
-> python smilesToGraph.py ZINC 10000 1
-> python smilesToGraph.py CEP 1000 1
+No installation steps are provided at the moment, as the project is still under construction.
 
-## 3. Also, enter below command to obtain logP, TPSA, QED and SAS.
+## Usage
 
-> python calcProperty.py
+Usage instructions will be provided once the project is ready for release.
 
-## 4. Training
+## Contributing
 
-python train.py model property #layers #epoch initial_learning_rate decay_rate 
+## License
 
-> python train.py GCN logP 3 100 0.001 0.95
+This project is not yet licensed.
 
-models : GCN, GCN+a, GCN+g, GCN+a+g, GGNN 
+## Contact
 
-property : logP, TPSA, QED, SAS (ZINC dataset) and pve (CEP dataset)
+For inquiries, please contact [omarabdelaty213@gmail.com](mailto:omarabdelaty213@gmail.com).
 

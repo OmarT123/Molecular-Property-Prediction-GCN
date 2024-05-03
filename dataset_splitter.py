@@ -1,45 +1,27 @@
 import os
-import shutil
-import random
+import sys
+import pandas as pd
+import numpy as np
 
-def split_dataset(dataset_path, training_idx, validation_idx):
-    # Create directories for training, validation, and testing sets
-    training_path = os.path.join(dataset_path, 'training_dataset')
-    validation_path = os.path.join(dataset_path, 'validation_dataset')
-    testing_path = os.path.join(dataset_path, 'testing_dataset')
 
-    adj_path = os.path.join(dataset_path, 'adj')
-    features_path = os.path.join(dataset_path, 'features')
+def shuffle_and_split_dataset(dataset_path):
+    dataset = pd.read_csv(os.path.join(dataset_path, 'qm9.csv'))
 
-    os.makedirs(os.path.join(training_path, 'adj'), exist_ok=True)
-    os.makedirs(os.path.join(training_path, 'features'), exist_ok=True)
-
-    os.makedirs(os.path.join(validation_path,'adj'), exist_ok=True)
-    os.makedirs(os.path.join(validation_path, 'features'), exist_ok=True)
-
-    os.makedirs(os.path.join(testing_path, 'adj'), exist_ok=True)
-    os.makedirs(os.path.join(testing_path, 'features'), exist_ok=True)
-
-    # Get list of adjacency lists files and randomize them
-    adj_files = os.listdir(adj_path)
-    random.shuffle(adj_files)  
-
-    # Divide adj files into training, validation, and testing datasets
-    training_files = adj_files[:training_idx]
-    validation_files = adj_files[training_idx: validation_idx]
-    testing_files = adj_files[validation_idx:]
+    shuffled_data = dataset.sample(frac=1, random_state=42)
     
-    # Move files to new folders
-    for file_name in training_files:
-        shutil.copy(os.path.join(adj_path, file_name), os.path.join(training_path, 'adj', file_name))
-        shutil.copy(os.path.join(features_path, file_name), os.path.join(training_path, 'features', file_name))
-    for file_name in validation_files:
-        shutil.copy(os.path.join(adj_path, file_name), os.path.join(validation_path, 'adj', file_name))
-        shutil.copy(os.path.join(features_path, file_name), os.path.join(validation_path, 'features', file_name))
-    for file_name in testing_files:
-        shutil.copy(os.path.join(adj_path, file_name), os.path.join(testing_path, 'adj', file_name))
-        shutil.copy(os.path.join(features_path, file_name), os.path.join(testing_path, 'features', file_name))
+    train_size = 107_100 #int((len(dataset)*0.8)/10)*10
+    val_size = 13_385 #int((0.1 * len(dataset))/10)*10
 
-    print("Files divided into training, validation, and testing sets successfully!")
+    training_dataset = shuffled_data[0: train_size]
+    validation_dataset = shuffled_data[train_size: train_size + val_size]
+    test_dataset = shuffled_data[train_size + val_size : ]
 
-split_dataset('./database/QM9_deepchem', 214, 241)
+    # Adds 15 random rows again at the end of the validation dataset to get a size divisible by 100
+    additional_validation_rows = validation_dataset.sample(n=15, random_state=42)
+    validation_dataset = pd.concat([validation_dataset, additional_validation_rows])
+
+    training_dataset.to_csv(os.path.join(dataset_path, 'train_data.csv'), index=False)
+    validation_dataset.to_csv(os.path.join(dataset_path, 'val_data.csv'), index=False)
+    test_dataset.to_csv(os.path.join(dataset_path, 'test_data.csv'), index=False)
+
+shuffle_and_split_dataset('./database/QM9_deepchem')

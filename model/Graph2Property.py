@@ -7,17 +7,13 @@ class Graph2Property():
     def __init__(self, FLAGS):
         self.FLAGS = FLAGS
         self.batch_size = FLAGS.batch_size
-        self.A = tf.placeholder(tf.float64, shape = [self.batch_size, 50, 50]) #Adjacency matrix
-        self.X = tf.placeholder(tf.float64, shape = [self.batch_size, 50, 58]) #Node features
+        self.A = tf.placeholder(tf.float64, shape = [self.batch_size, 9, 9]) #Adjacency matrix
+        self.X = tf.placeholder(tf.float64, shape = [self.batch_size, 9, 21]) #Node features
         self.P = tf.placeholder(tf.float64, shape = [self.batch_size]) #Target property or label
 
         self.create_network()
 
     def create_network(self):
-        
-        # self.A = tf.cast(self.A, tf.float64)
-        # self.X = tf.cast(self.X, tf.float64)
-        # self.P = tf.cast(self.P, tf.float64)
 
         self.Z = None #Latent Vector
         self._X = None #Node Embeddings
@@ -33,14 +29,9 @@ class Graph2Property():
             self._X = blocks.encoder_gcn_gate(self.X, self.A, num_layers)
         elif( self.FLAGS.model == 'GCN+a+g' ):
             self._X = blocks.encoder_gat_gate(self.X, self.A, num_layers)
-        elif( self.FLAGS.model == 'GGNN' ):
-            self._X = blocks.encoder_ggnn(self.X, self.A, num_layers)
-
-        if (self.FLAGS.readout == 'atomwise' ):
-            self.Z, self._P = blocks.readout_atomwise(self._X, latent_dim)
-        elif (self.FLAGS.readout == 'graph_gather' ):
-            self.Z, self._P = blocks.readout_atomwise(self.X, self._X, latent_dim)
-
+        
+        self.Z, self._P = blocks.readout_atomwise(self._X, latent_dim)
+        
         self.loss = self.calLoss(self.P, self._P)
 
         self.lr = tf.Variable(0.0, trainable = False)

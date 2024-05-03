@@ -228,7 +228,6 @@ def encoder_gcn_gate(X, A, num_layers):
 
 def encoder_gcn(X, A, num_layers):
     # X : Atomic Feature, A : Adjacency Matrix
-    num_atoms = int(X.get_shape()[1])
     input_dim = int(X.get_shape()[2])
     hidden_dim = []
     hidden_dim.append(input_dim)

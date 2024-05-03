@@ -73,6 +73,12 @@ def one_of_k_encoding_unk(x, allowable_set): # One hot encoding function
         x = allowable_set[-1]
     return list(map(lambda s: x == s, allowable_set))
 
+smiles = "C(=O)NC=O"
+mol = Chem.MolFromSmiles(smiles)
+for atom in mol.GetAtoms():
+    print( atom_feature(atom).shape)
+    break
+
 # execution : 
 # Re-use several scripts in https://github.com/HIPS/neural-fingerprint
 # python smilesToGraph.py CEP 1000 1    --- to generate graph inputs for CEP dataset 
@@ -83,23 +89,23 @@ def one_of_k_encoding_unk(x, allowable_set): # One hot encoding function
 # k = int(sys.argv[3])        # neighbor distance
 
 
-dbName = "QM9_deepchem"
-dbPath = "./QM9_deepchem/qm9.csv"
-length = 500
-k = 1
-df = pd.read_csv(dbPath)
-smiles_list = df['smiles'].tolist()
-num_smiles = len(smiles_list)
+# dbName = "QM9_deepchem"
+# dbPath = "./QM9_deepchem/qm9.csv"
+# length = 500
+# k = 1
+# df = pd.read_csv(dbPath)
+# smiles_list = df['smiles'].tolist()
+# num_smiles = len(smiles_list)
 
-# smiles_f = open('./'+dbName+'/smiles.txt')
-# smiles_list = smiles_f.readlines()
-# print (len(smiles_list))
-maxNum = int(num_smiles/length)
+# # smiles_f = open('./'+dbName+'/smiles.txt')
+# # smiles_list = smiles_f.readlines()
+# # print (len(smiles_list))
+# maxNum = int(num_smiles/length)
 
-for i in range(maxNum+1):
-    lb = i*length
-    ub = (i+1)*length
-    adj, features = convertToGraph(smiles_list[lb:ub], k)
-    print (np.asarray(features).shape)
-    np.save('./'+dbName+'/adj/'+str(i)+'.npy', adj)
-    np.save('./'+dbName+'/features/'+str(i)+'.npy', features)
+# for i in range(maxNum+1):
+#     lb = i*length
+#     ub = (i+1)*length
+#     adj, features = convertToGraph(smiles_list[lb:ub], k)
+#     print (np.asarray(features).shape)
+#     np.save('./'+dbName+'/adj/'+str(i)+'.npy', adj)
+#     np.save('./'+dbName+'/features/'+str(i)+'.npy', features)
